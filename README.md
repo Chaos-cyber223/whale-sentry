@@ -1,12 +1,12 @@
 # Whale-Sentry  
-**On-chain Anomaly Detection for MEV & Trading Abuse**
+**On-chain Risk Detection for MEV & Trading Abuse**
 
-Whale-Sentry is an AI-driven on-chain risk detection system designed to identify anomalous trading behaviors on decentralized exchanges, with a focus on **MEV-related attacks (e.g., sandwich attacks)** and **wash trading** on **Uniswap V3**.
+Whale-Sentry is an on-chain risk detection system designed to identify suspicious trading behaviors on decentralized exchanges, with a focus on MEV-related attacks (e.g., sandwich attacks) and wash trading on Uniswap V3.
 
-The project applies statistical modeling and machine learning techniques to blockchain transaction data, aiming to bridge **DeFi mechanics**, **risk engineering**, and **applied data science**.
+The project applies statistical modeling and lightweight machine learning as supporting tools, prioritizing data correctness, interpretability, and operational awareness over model complexity.
 
-> 🚧 **Project Status (Jan 21, 2026): Actively under development**  
-> Initial MVP is planned within **2 weeks**, focusing on reproducible data pipelines and interpretable anomaly detection.
+> 🚧 **Project Status (Jan 22, 2026): Actively under development**  
+> Initial MVP is planned within **2 weeks**, focusing on reproducible data pipelines and interpretable risk signals.
 
 ---
 
@@ -31,7 +31,7 @@ This project is particularly relevant for:
 - **On-chain data analysis** (Uniswap V3 swaps & liquidity events)
 - **MEV-aware anomaly detection**
 - **Explainable risk signals**, not black-box predictions
-- Research-oriented engineering with production-minded structure
+- Research-oriented engineering with production-minded constraints
 
 ---
 
@@ -77,6 +77,7 @@ The system follows a two-layer approach:
    - Isolation Forest for anomaly ranking
 
 This design prioritizes **explainability first**, then **model-based prioritization**.
+This design explicitly avoids black-box decision making and favors signals that can be audited, reasoned about, and operationally monitored.
 
 ---
 
@@ -125,6 +126,7 @@ Analysis Notebooks + Risk Dashboard
 
 - Precise block-level transaction ordering (txIndex) is not fully integrated in the MVP
 - Profit attribution for MEV actors is approximated, not exact
+- These limitations are explicitly documented to avoid overconfidence in risk signals produced by the system.
 
 **Future extensions:**
 - Direct log-level ingestion via `web3.py`
@@ -137,7 +139,7 @@ Analysis Notebooks + Risk Dashboard
 **Rhea Wang**  
 M.S. in Statistics, University of Pennsylvania  
 
-Background in statistical modeling, applied machine learning, and cloud-native engineering.  
+Background in statistical modeling, applied machine learning, and cloud-native engineering, with a focus on building reliable on-chain risk systems.
 Currently focused on **on-chain risk, MEV analysis, and DeFi market behavior**.
 
 Open to **Web3 / Crypto roles (remote or Singapore-based)**.
