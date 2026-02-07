@@ -47,3 +47,11 @@ notebooks/
 
 # Misc
 *.bak
+agent.md
+
+# OpenClaw / AI assistant files
+.claude
+PROJECT_ANALYSIS.md
+
+# Processed data (keep raw data in git if small)
+data/processed/
