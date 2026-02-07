@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=69.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "whalesentry"
+version = "0.1.0"
+description = "On-chain anomaly detection scaffolding for whale-sentry MVP."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+  {name = "Whale Sentry"}
+]
+dependencies = [
+  "requests>=2.31.0",
+  "pandas>=2.2.0",
+  "pyarrow>=15.0.0",
+  "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "ruff>=0.1.14",
+  "pytest>=7.4",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["whalesentry*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = [
+  "E",
+  "F",
+  "B",
+  "I",
+  "UP",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -1,0 +1,57 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.so
+*.dylib
+*.egg
+*.egg-info/
+.eggs/
+.build/
+build/
+dist/
+pip-wheel-metadata/
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+.env
+.env.*
+*.env
+!configs/.env.example
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Data & logs
+logs/
+data/*
+!data/.gitkeep
+*.parquet
+*.duckdb
+*.log
+
+# Notebooks
+notebooks/
+*.ipynb
+
+# Misc
+*.bak
+agent.md
+
+# OpenClaw / AI assistant files
+.claude
+PROJECT_ANALYSIS.md
+
+# Processed data (keep raw data in git if small)
+data/processed/
