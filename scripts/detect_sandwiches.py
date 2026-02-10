@@ -38,7 +38,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from whalesentry.detection import candidates_to_dataframe, detect_sandwich_attacks
+from whalesentry.detection import candidates_to_dataframe, detect_sandwich_attacks, detect_sandwich_attacks_optimized
 
 # Configure logging with structured format
 logging.basicConfig(
@@ -119,6 +119,18 @@ Examples:
         type=float,
         default=0.5,
         help="Minimum amount similarity ratio (0.0-1.0, default: 0.5)",
+    )
+    detection_group.add_argument(
+        "--use-optimized",
+        action="store_true",
+        default=True,
+        help="Use optimized O(n log n) algorithm (default: True)",
+    )
+    detection_group.add_argument(
+        "--use-legacy",
+        action="store_true",
+        default=False,
+        help="Use legacy O(n³) algorithm instead of optimized (default: False)",
     )
 
     # Logging options
@@ -342,14 +354,19 @@ def main() -> int:
         return 0
 
     # Run detection
+    use_optimized = parsed.use_optimized and not parsed.use_legacy
     logger.info("Running sandwich detection...")
+    logger.info("  Algorithm: %s", "optimized O(n log n)" if use_optimized else "legacy O(n³)")
     logger.info("  Time window: %d seconds", parsed.time_window)
     logger.info("  Min USD: $%.2f", parsed.min_usd)
     logger.info("  Similarity threshold: %.2f", parsed.similarity_threshold)
 
     start_time = time.time()
 
-    result = detect_sandwich_attacks(
+    # Select detection function based on flag
+    detection_func = detect_sandwich_attacks_optimized if use_optimized else detect_sandwich_attacks
+
+    result = detection_func(
         df,
         time_window_seconds=parsed.time_window,
         min_usd_value=Decimal(str(parsed.min_usd)),
@@ -359,6 +376,7 @@ def main() -> int:
     elapsed_time = time.time() - start_time
 
     logger.info("Detection complete in %.2f seconds", elapsed_time)
+    logger.info("  Algorithm used: %s", "optimized" if use_optimized else "legacy")
     logger.info("Found %d candidates", result.total_candidates)
 
     # Filter by confidence if specified

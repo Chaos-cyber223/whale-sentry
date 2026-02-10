@@ -9,11 +9,13 @@ from whalesentry.detection.sandwich import (
     SandwichCandidate,
     candidates_to_dataframe,
     detect_sandwich_attacks,
+    detect_sandwich_attacks_optimized,
 )
 
 __all__ = [
     "SandwichCandidate",
     "DetectionResult",
     "detect_sandwich_attacks",
+    "detect_sandwich_attacks_optimized",
     "candidates_to_dataframe",
 ]
