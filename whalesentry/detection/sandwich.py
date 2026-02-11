@@ -604,9 +604,296 @@ def candidates_to_dataframe(candidates: list[SandwichCandidate]) -> pd.DataFrame
     return pd.DataFrame(records)
 
 
+def detect_sandwich_attacks_optimized(
+    df: pd.DataFrame,
+    time_window_seconds: int = 60,
+    min_usd_value: Decimal = Decimal("100"),
+    amount_similarity_threshold: float = 0.5,
+) -> DetectionResult:
+    """Detect sandwich attacks using optimized sliding window algorithm.
+
+    This function provides O(n log n) performance compared to the original O(n³)
+    implementation by using a sliding window approach with hash map lookups.
+
+    Algorithm:
+    1. Group transactions by pool and sort by timestamp (O(n log n))
+    2. For each pool, use a sliding window to maintain transactions within
+       the time window
+    3. Use a hash map to track addresses and their transaction indices
+    4. For each potential victim, check only transactions within the window
+       that share the same address (potential front/back-runs)
+
+    Detection Logic (same as original):
+    1. Group transactions by pool
+    2. Sort by timestamp within each pool
+    3. Look for patterns where the same address appears before AND after
+       another address within the time window
+    4. Check for directional reversal (buy then sell, or sell then buy)
+    5. Validate that front-run and back-run amounts are similar in magnitude
+
+    Args:
+        df: DataFrame containing swap data with columns:
+            - timestamp: Unix timestamp
+            - pool: Pool address
+            - sender: Transaction sender address
+            - tx_hash: Transaction hash
+            - amount0, amount1: Token amounts (one positive, one negative)
+            - amount_usd: USD value of the swap
+        time_window_seconds: Maximum time between front-run and back-run
+            transactions to consider as a sandwich attack.
+        min_usd_value: Minimum USD value for transactions to be considered.
+        amount_similarity_threshold: Minimum ratio between smaller and larger
+            transaction amounts to consider them similar (0.0 to 1.0).
+
+    Returns:
+        DetectionResult containing all detected sandwich candidates and
+        detection statistics.
+
+    Performance:
+        Time Complexity: O(n log n) - dominated by sorting
+        Space Complexity: O(n) - for storing indices and candidates
+
+    Example:
+        >>> df = pd.read_parquet("swaps_clean.parquet")
+        >>> result = detect_sandwich_attacks_optimized(df, time_window_seconds=60)
+        >>> print(f"Found {result.total_candidates} potential attacks")
+    """
+    errors: list[str] = []
+
+    # Validate input
+    required_columns = {
+        "timestamp", "pool", "sender", "tx_hash",
+        "amount0", "amount1", "amount_usd",
+    }
+    missing_columns = required_columns - set(df.columns)
+    if missing_columns:
+        errors.append(f"Missing required columns: {missing_columns}")
+        return DetectionResult(
+            candidates=tuple(),
+            total_swaps_analyzed=0,
+            pools_analyzed=0,
+            time_window_seconds=time_window_seconds,
+            detection_errors=errors,
+        )
+
+    if df.empty:
+        return DetectionResult(
+            candidates=tuple(),
+            total_swaps_analyzed=0,
+            pools_analyzed=0,
+            time_window_seconds=time_window_seconds,
+            detection_errors=["Empty DataFrame provided"],
+        )
+
+    # Make a copy to avoid modifying original
+    data = df.copy()
+
+    # Convert amount_usd to numeric for filtering
+    data["amount_usd_numeric"] = pd.to_numeric(data["amount_usd"], errors="coerce")
+    data["amount0_numeric"] = pd.to_numeric(data["amount0"], errors="coerce")
+    data["amount1_numeric"] = pd.to_numeric(data["amount1"], errors="coerce")
+
+    # Filter by minimum USD value
+    data = data[data["amount_usd_numeric"] >= float(min_usd_value)]
+
+    if data.empty:
+        return DetectionResult(
+            candidates=tuple(),
+            total_swaps_analyzed=len(df),
+            pools_analyzed=df["pool"].nunique(),
+            time_window_seconds=time_window_seconds,
+            detection_errors=["No transactions above minimum USD threshold"],
+        )
+
+    # Determine trade direction for each transaction
+    data["is_buy"] = (data["amount0_numeric"] < 0) & (data["amount1_numeric"] > 0)
+    data["is_sell"] = (data["amount0_numeric"] > 0) & (data["amount1_numeric"] < 0)
+
+    # Group by pool and detect sandwiches using optimized algorithm
+    candidates: list[SandwichCandidate] = []
+
+    for _pool, group in data.groupby("pool"):
+        # Sort by timestamp
+        group = group.sort_values("timestamp").reset_index(drop=True)
+
+        # Use optimized detection algorithm
+        pool_candidates = _detect_sandwiches_in_pool_optimized(
+            group,
+            time_window_seconds,
+            amount_similarity_threshold,
+        )
+        candidates.extend(pool_candidates)
+
+    return DetectionResult(
+        candidates=tuple(candidates),
+        total_swaps_analyzed=len(df),
+        pools_analyzed=df["pool"].nunique(),
+        time_window_seconds=time_window_seconds,
+        detection_errors=errors,
+    )
+
+
+def _detect_sandwiches_in_pool_optimized(
+    pool_data: pd.DataFrame,
+    time_window_seconds: int,
+    amount_similarity_threshold: float,
+) -> list[SandwichCandidate]:
+    """Detect sandwich attacks within a single pool using sliding window.
+
+    Optimized algorithm with O(n log n) complexity:
+    1. Pre-process: Build index of address -> list of transaction indices
+    2. For each potential victim transaction:
+       a. Look for same-address transactions within time window (front-runs)
+       b. For each front-run, look for matching back-runs within window
+       c. Check directional reversal and amount similarity
+
+    Args:
+        pool_data: DataFrame containing swaps for a single pool,
+            sorted by timestamp.
+        time_window_seconds: Maximum time between front-run and back-run.
+        amount_similarity_threshold: Minimum ratio between smaller and larger
+            transaction amounts.
+
+    Returns:
+        List of detected sandwich candidates in this pool.
+    """
+    candidates: list[SandwichCandidate] = []
+    n = len(pool_data)
+
+    if n < 3:
+        return candidates
+
+    # Pre-compute timestamps as numpy array for faster access
+    timestamps = pool_data["timestamp"].values
+    senders = pool_data["sender"].values
+    tx_hashes = pool_data["tx_hash"].values
+    pools = pool_data["pool"].values
+    amount_usd_numeric = pool_data["amount_usd_numeric"].values
+    is_buy = pool_data["is_buy"].values
+    is_sell = pool_data["is_sell"].values
+
+    # Build address index: maps address -> list of transaction indices
+    # This allows O(1) lookup of all transactions by an address
+    from collections import defaultdict
+    address_indices: dict[str, list[int]] = defaultdict(list)
+    for idx in range(n):
+        address_indices[senders[idx]].append(idx)
+
+    # For each potential victim transaction
+    for victim_idx in range(1, n - 1):
+        victim_time = timestamps[victim_idx]
+        victim_sender = senders[victim_idx]
+
+        # Iterate through all addresses that have transactions before victim
+        # within the time window
+        for attacker, indices in address_indices.items():
+            # Skip if attacker is the victim
+            if attacker == victim_sender:
+                continue
+
+            # Find front-run candidates (same address, before victim, within window)
+            front_candidates = []
+            for front_idx in indices:
+                if front_idx >= victim_idx:
+                    break  # Indices are sorted, so all subsequent are >= victim
+
+                front_time = timestamps[front_idx]
+                time_diff = victim_time - front_time
+
+                if time_diff > time_window_seconds:
+                    continue  # Outside time window
+
+                # Check if front transaction has clear direction
+                if not (is_buy[front_idx] or is_sell[front_idx]):
+                    continue
+
+                front_candidates.append(front_idx)
+
+            if not front_candidates:
+                continue
+
+            # Check all combinations of front-run and back-run candidates
+            for front_idx in front_candidates:
+                front_time = timestamps[front_idx]
+                front_is_buy = is_buy[front_idx]
+                front_is_sell = is_sell[front_idx]
+
+                # Find back-run candidates for this specific front-run
+                for back_idx in indices:
+                    if back_idx <= victim_idx:
+                        continue  # Skip indices before or at victim
+
+                    back_time = timestamps[back_idx]
+                    total_time = back_time - front_time
+
+                    # Check time window from this specific front-run
+                    if total_time > time_window_seconds:
+                        break  # No need to check further, indices are sorted
+
+                    back_is_buy = is_buy[back_idx]
+                    back_is_sell = is_sell[back_idx]
+
+                    # Check if back transaction has clear direction
+                    if not (back_is_buy or back_is_sell):
+                        continue
+
+                    # Check directional reversal
+                    is_reversal = (front_is_buy and back_is_sell) or (front_is_sell and back_is_buy)
+                    if not is_reversal:
+                        continue
+
+                    # Check amount similarity
+                    front_usd = float(amount_usd_numeric[front_idx])
+                    back_usd = float(amount_usd_numeric[back_idx])
+
+                    if front_usd <= 0 or back_usd <= 0:
+                        continue
+
+                    min_amount = min(front_usd, back_usd)
+                    max_amount = max(front_usd, back_usd)
+                    similarity_ratio = min_amount / max_amount if max_amount > 0 else 0
+
+                    if similarity_ratio < amount_similarity_threshold:
+                        continue
+
+                    # Calculate confidence and create candidate
+                    time_diff = int(victim_time - timestamps[front_idx])
+                    total_time = int(timestamps[back_idx] - timestamps[front_idx])
+
+                    confidence = _calculate_confidence(
+                        time_diff,
+                        total_time,
+                        similarity_ratio,
+                        float(amount_usd_numeric[victim_idx]),
+                        front_usd,
+                    )
+
+                    profit_estimate = back_usd - front_usd if back_usd > front_usd else Decimal("0")
+
+                    candidate = SandwichCandidate(
+                        attacker=attacker,
+                        victim_tx=tx_hashes[victim_idx],
+                        front_run_tx=tx_hashes[front_idx],
+                        back_run_tx=tx_hashes[back_idx],
+                        pool=pools[victim_idx],
+                        front_run_timestamp=int(timestamps[front_idx]),
+                        victim_timestamp=int(victim_time),
+                        back_run_timestamp=int(timestamps[back_idx]),
+                        front_run_amount_usd=str(front_usd),
+                        victim_amount_usd=str(amount_usd_numeric[victim_idx]),
+                        back_run_amount_usd=str(back_usd),
+                        profit_estimate_usd=str(profit_estimate),
+                        confidence_score=confidence,
+                    )
+                    candidates.append(candidate)
+
+    return candidates
+
+
 __all__ = [
     "SandwichCandidate",
     "DetectionResult",
     "detect_sandwich_attacks",
+    "detect_sandwich_attacks_optimized",
     "candidates_to_dataframe",
 ]

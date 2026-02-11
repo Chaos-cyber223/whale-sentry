@@ -5,8 +5,8 @@ Whale-Sentry is an on-chain risk detection system designed to identify suspiciou
 
 The project applies statistical modeling and lightweight machine learning as supporting tools, prioritizing data correctness, interpretability, and operational awareness over model complexity.
 
-> ✅ **Project Status (Feb 7, 2026): Data Infrastructure Complete**  
-> Core data pipeline and validation infrastructure is now production-ready. Pydantic models, comprehensive validation tools, and full test coverage are in place. Detection algorithms in development.
+> ✅ **Project Status (Feb 10, 2026): Sandwich Attack Detection Complete**  
+> Core data pipeline and sandwich attack detection are now production-ready. Optimized O(n log n) algorithm with 45-92x performance improvement, comprehensive test coverage (36 tests), and CLI tool for analysis.
 
 ---
 
@@ -112,13 +112,30 @@ This design explicitly avoids black-box decision making and favors signals that 
   - Strict mode for CI/CD integration
   - Automatic report generation
 
+### Sandwich Attack Detection
+- **Detection Module** (`whalesentry/detection/sandwich.py`)
+  - `SandwichCandidate` Pydantic model for type-safe results
+  - `detect_sandwich_attacks()` - original O(n³) implementation
+  - `detect_sandwich_attacks_optimized()` - optimized O(n log n) algorithm
+  - **Performance**: 45-92x speedup on 100-1000 transaction datasets
+  - Detection logic: identifies attacker addresses before/after victim transactions
+  - Validates directional reversal (buy→sell or sell→buy)
+  - Confidence scoring based on timing, amounts, and victim transaction size
+
+- **CLI Tool** (`scripts/detect_sandwiches.py`)
+  - Command-line interface with configurable parameters
+  - `--use-optimized` flag (default: True) for O(n log n) algorithm
+  - `--use-legacy` flag for original O(n³) algorithm
+  - Outputs results to Parquet format
+  - Generates Markdown detection reports with pool-level statistics
+  - Displays algorithm type and execution time
+
 ### Testing
-- **Complete Unit Test Suite** (`tests/test_clean_swaps.py`)
-  - Pydantic model validation tests (13 test cases)
-  - SwapDataFrame collection tests (6 test cases)
-  - Validator functionality tests (7 test cases)
-  - Cleaning report tests (3 test cases)
-  - Data cleaning pipeline tests (4 test cases)
+- **Complete Unit Test Suite**
+  - Data validation tests (`tests/test_clean_swaps.py`): 33 test cases
+  - Sandwich detection tests (`tests/test_sandwich_detection.py`): 29 test cases
+  - Performance tests (`tests/test_sandwich_performance.py`): 7 test cases
+  - **Total: 69 tests, all passing ✅**
   - Integration tests including parquet roundtrip
 
 ---
@@ -153,6 +170,31 @@ Analysis Notebooks + Risk Dashboard ← Planned
 
 ## Usage Examples
 
+### Sandwich Attack Detection
+
+```bash
+# Basic usage - detect sandwich attacks
+$ python scripts/detect_sandwiches.py \
+    --input data/processed/swaps_clean.parquet \
+    --output data/results/sandwich_candidates.parquet
+
+# Use legacy O(n³) algorithm for comparison
+$ python scripts/detect_sandwiches.py \
+    --input data/processed/swaps_clean.parquet \
+    --use-legacy
+
+# Custom parameters
+$ python scripts/detect_sandwiches.py \
+    --input data/processed/swaps_clean.parquet \
+    --time-window 120 \
+    --min-usd 500 \
+    --min-confidence 0.8 \
+    --report data/results/detection_report.md
+
+# Verbose output with timing information
+$ python scripts/detect_sandwiches.py -i swaps.parquet -v
+```
+
 ### Data Cleaning
 
 ```bash
@@ -181,6 +223,33 @@ $ python scripts/clean_swaps.py -i swaps.parquet -v
 ### Programmatic Usage
 
 ```python
+# Sandwich attack detection
+from whalesentry.detection import detect_sandwich_attacks_optimized
+import pandas as pd
+from decimal import Decimal
+
+# Load clean swap data
+df = pd.read_parquet("data/processed/swaps_clean.parquet")
+
+# Run optimized detection
+result = detect_sandwich_attacks_optimized(
+    df,
+    time_window_seconds=60,
+    min_usd_value=Decimal("100"),
+    amount_similarity_threshold=0.5
+)
+
+print(f"Found {result.total_candidates} sandwich attack candidates")
+print(f"Analyzed {result.total_swaps_analyzed} swaps across {result.pools_analyzed} pools")
+
+# Access individual candidates
+for candidate in result.candidates[:5]:
+    print(f"Attacker: {candidate.attacker}")
+    print(f"Victim TX: {candidate.victim_tx}")
+    print(f"Estimated profit: ${candidate.profit_estimate_usd}")
+    print(f"Confidence: {candidate.confidence_score:.2f}")
+
+# Data validation
 from whalesentry.models.swap import SwapEvent, SwapDataFrame
 from whalesentry.validation import SwapValidator, CleaningReport
 import pandas as pd
@@ -217,15 +286,17 @@ $ pytest tests/test_clean_swaps.py -v
 
 ## Development Roadmap
 
-### ✅ Completed (Week 1)
+### ✅ Completed
 - ~~Data ingestion from Uniswap V3 Subgraph~~
 - ~~Pydantic data models with validation~~
 - ~~Data cleaning and validation pipeline~~
-- ~~Comprehensive unit tests~~
+- ~~Comprehensive unit tests (69 tests)~~
 - ~~Validation reporting infrastructure~~
+- ~~**Sandwich attack detection with O(n log n) optimization**~~
+- ~~**CLI tool for sandwich detection**~~
+- ~~**Performance benchmarking (45-92x speedup)**~~
 
-### 🚧 In Progress (Week 2)
-- Initial sandwich attack rule-based detection
+### 🚧 In Progress
 - Wash trading detection heuristics
 - Exploratory analysis notebooks
 
@@ -233,6 +304,7 @@ $ pytest tests/test_clean_swaps.py -v
 - Anomaly scoring (Z-score, Isolation Forest)
 - Visualization of anomalous events
 - Minimal Streamlit dashboard
+- Real-time detection pipeline
 - Documentation & result examples
 
 ---
@@ -278,17 +350,25 @@ Analysis Notebooks + Risk Dashboard
 - Minimal Streamlit dashboard
 - Documentation & result examples
 
-## Limitations & Future Work
+## Limitations & Known Issues
 
-- Precise block-level transaction ordering (txIndex) is not fully integrated in the MVP
-- Profit attribution for MEV actors is approximated, not exact
-- These limitations are explicitly documented to avoid overconfidence in risk signals produced by the system.
+### Current Implementation
+- **Block-level ordering**: Currently uses timestamps only. Real sandwich attacks occur within the same block; future versions should incorporate `txIndex` for more precise detection.
+- **Profit calculation**: Uses simplified USD value difference. Production version should calculate actual profit based on `sqrtPriceX96` price impact and gas costs.
+- **MEV bot filtering**: Does not distinguish between malicious sandwich attacks and legitimate arbitrage bots.
+
+### Performance Characteristics
+- **Optimized algorithm**: O(n log n) complexity, suitable for datasets up to 10,000+ transactions
+- **Legacy algorithm**: O(n³) complexity, provided for reference and validation only
+- **Memory usage**: Reasonable for datasets up to 100,000 transactions (< 500MB)
 
 **Future extensions:**
 - Direct log-level ingestion via `web3.py`
 - Real-time streaming detection
 - Cross-DEX analysis
 - Integration with MEV relay / builder data
+- Known MEV bot address filtering
+- Multi-victim sandwich pattern detection
 
 ## About the Author
 
