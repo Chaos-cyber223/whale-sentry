@@ -5,8 +5,8 @@ Whale-Sentry is an on-chain risk detection system designed to identify suspiciou
 
 The project applies statistical modeling and lightweight machine learning as supporting tools, prioritizing data correctness, interpretability, and operational awareness over model complexity.
 
-> ✅ **Project Status (Feb 10, 2026): Sandwich Attack Detection Complete**  
-> Core data pipeline and sandwich attack detection are now production-ready. Optimized O(n log n) algorithm with 45-92x performance improvement, comprehensive test coverage (36 tests), and CLI tool for analysis.
+> ✅ **Project Status (Feb 11, 2026): Wash Trading Data Models Complete**  
+> Core detection infrastructure expanded with comprehensive wash trading data models. The system now supports three pattern types (roundtrip, closed-loop, coordinated) with full Pydantic validation. Test coverage: **72 tests passing**.
 
 ---
 
@@ -130,12 +130,20 @@ This design explicitly avoids black-box decision making and favors signals that 
   - Generates Markdown detection reports with pool-level statistics
   - Displays algorithm type and execution time
 
+### Wash Trading Detection (In Progress)
+- **Data Models** (`whalesentry/models/wash_trade.py`)
+  - `WashTradeType` (StrEnum): Pattern classification (roundtrip, closed-loop, coordinated)
+  - `WashTradeMetrics`: Quantitative measurements (trade count, amount similarity, counterparty diversity)
+  - `WashTradeCandidate`: Type-safe representation with full validation
+  - `WashTradeDetectionResult`: Container with statistics and filtering support
+  - Follows same patterns as `SandwichCandidate` for consistency
+
 ### Testing
 - **Complete Unit Test Suite**
   - Data validation tests (`tests/test_clean_swaps.py`): 33 test cases
   - Sandwich detection tests (`tests/test_sandwich_detection.py`): 29 test cases
   - Performance tests (`tests/test_sandwich_performance.py`): 7 test cases
-  - **Total: 69 tests, all passing ✅**
+  - **Total: 72 tests, all passing ✅**
   - Integration tests including parquet roundtrip
 
 ---
@@ -149,7 +157,7 @@ Data Ingestion (GraphQL)
         ↓
 Cleaning & Feature Engineering ← ✅ COMPLETE
         ↓
-Rule-based Detection (Sandwich / Wash) ← In Progress
+Rule-based Detection (Sandwich ✅ / Wash 🚧) ← In Progress
         ↓
 Anomaly Scoring (Stat / ML) ← Planned
         ↓
@@ -267,6 +275,44 @@ report = CleaningReport()
 report.add_validation_result(result)
 report.add_statistics(df)
 markdown = report.generate_markdown()
+
+# Wash trading detection models (Milestone 1 Complete)
+from whalesentry.models.wash_trade import (
+    WashTradeType,
+    WashTradeMetrics,
+    WashTradeCandidate,
+    WashTradeDetectionResult,
+)
+
+# Create wash trading metrics
+metrics = WashTradeMetrics(
+    trade_count=6,
+    unique_addresses=1,
+    time_window_seconds=300,
+    round_trip_count=3,
+    avg_trade_interval_seconds=50.0,
+    amount_similarity_score=0.98,
+    volume_usd_total="15000.00",
+)
+
+# Create wash trading candidate
+candidate = WashTradeCandidate(
+    detection_type=WashTradeType.ROUNDTRIP,
+    primary_address="0x66a9893cc07d91d95644aedd05d03f95e1dba8af",
+    involved_addresses=["0x66a9893cc07d91d95644aedd05d03f95e1dba8af"],
+    pool="0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640",
+    token_pair="WETH/USDC",
+    related_tx_hashes=["0xabc...", "0xdef..."],
+    start_timestamp=1769263200,
+    end_timestamp=1769263500,
+    metrics=metrics,
+    confidence_score=0.92,
+    description="Detected 3 round-trip trades within 5 minutes",
+)
+
+print(f"Confidence: {candidate.confidence_score}")
+print(f"Duration: {candidate.duration_seconds}s")
+print(f"High confidence: {candidate.is_high_confidence}")
 ```
 
 ### Running Tests
@@ -290,15 +336,19 @@ $ pytest tests/test_clean_swaps.py -v
 - ~~Data ingestion from Uniswap V3 Subgraph~~
 - ~~Pydantic data models with validation~~
 - ~~Data cleaning and validation pipeline~~
-- ~~Comprehensive unit tests (69 tests)~~
+- ~~Comprehensive unit tests (72 tests)~~
+- ~~**Wash trading data models with Pydantic validation**~~
 - ~~Validation reporting infrastructure~~
 - ~~**Sandwich attack detection with O(n log n) optimization**~~
 - ~~**CLI tool for sandwich detection**~~
 - ~~**Performance benchmarking (45-92x speedup)**~~
 
 ### 🚧 In Progress
-- Wash trading detection heuristics
+- Wash trading detection algorithms (roundtrip & closed-loop heuristics)
 - Exploratory analysis notebooks
+
+### ✅ Recently Completed
+- ~~Wash trading data models with Pydantic validation~~
 
 ### 📋 Planned
 - Anomaly scoring (Z-score, Isolation Forest)
