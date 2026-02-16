@@ -80,7 +80,7 @@ The detection system has been validated on real Uniswap V3 data:
 ### Dataset
 - **Pool**: WETH/USDC (0x88e6a0c2...cb3f5640)
 - **Transactions**: 90 swaps
-- **Time Period**: January 2024
+- **Time Period**: January 24, 2026 (1-hour window)
 
 ### Detection Results
 
