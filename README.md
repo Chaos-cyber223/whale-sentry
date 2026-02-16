@@ -165,13 +165,26 @@ This design explicitly avoids black-box decision making and favors signals that 
   - Generates Markdown detection reports with pool-level statistics
   - Displays algorithm type and execution time
 
-### Wash Trading Detection (In Progress)
+### Wash Trading Detection ✅
 - **Data Models** (`whalesentry/models/wash_trade.py`)
   - `WashTradeType` (StrEnum): Pattern classification (roundtrip, closed-loop, coordinated)
   - `WashTradeMetrics`: Quantitative measurements (trade count, amount similarity, counterparty diversity)
   - `WashTradeCandidate`: Type-safe representation with full validation
   - `WashTradeDetectionResult`: Container with statistics and filtering support
   - Follows same patterns as `SandwichCandidate` for consistency
+- **Detection Algorithm** (`whalesentry/detection/wash_trade.py`)
+  - ROUNDTRIP pattern detection with sliding window analysis
+  - MAD-based amount similarity calculation
+  - Multi-factor confidence scoring
+  - Configurable parameters (time window, minimum amount, round trips)
+- **CLI Tool** (`scripts/detect_wash_trades.py`)
+  - Command-line interface for batch detection
+  - JSON output support
+  - Detailed logging and reporting
+- **Test Suite** (`tests/test_wash_trade_detection.py`)
+  - 29 comprehensive test cases
+  - Edge case coverage
+  - Parameter validation tests
 
 ### Testing
 - **Complete Unit Test Suite**
@@ -192,7 +205,7 @@ Data Ingestion (GraphQL)
         ↓
 Cleaning & Feature Engineering ← ✅ COMPLETE
         ↓
-Rule-based Detection (Sandwich ✅ / Wash 🚧) ← In Progress
+Rule-based Detection (Sandwich ✅ / Wash ✅) ← ✅ COMPLETE
         ↓
 Anomaly Scoring (Stat / ML) ← Planned
         ↓
@@ -368,29 +381,27 @@ $ pytest tests/test_clean_swaps.py -v
 ## Development Roadmap
 
 ### ✅ Completed
-- ~~Data ingestion from Uniswap V3 Subgraph~~
-- ~~Pydantic data models with validation~~
-- ~~Data cleaning and validation pipeline~~
-- ~~Comprehensive unit tests (72 tests)~~
-- ~~**Wash trading data models with Pydantic validation**~~
-- ~~Validation reporting infrastructure~~
-- ~~**Sandwich attack detection with O(n log n) optimization**~~
-- ~~**CLI tool for sandwich detection**~~
-- ~~**Performance benchmarking (45-92x speedup)**~~
-
-### 🚧 In Progress
-- Wash trading detection algorithms (roundtrip & closed-loop heuristics)
-- Exploratory analysis notebooks
-
-### ✅ Recently Completed
-- ~~Wash trading data models with Pydantic validation~~
+- Data ingestion from Uniswap V3 Subgraph
+- Pydantic data models with validation
+- Data cleaning and validation pipeline
+- Comprehensive unit tests (101 tests: 72 sandwich + 29 wash trading)
+- **Sandwich attack detection with O(n log n) optimization**
+- **CLI tool for sandwich detection**
+- **Performance benchmarking (45-92x speedup)**
+- **Wash trading data models with Pydantic validation**
+- **Wash trading ROUNDTRIP detection algorithm**
+- **CLI tool for wash trading detection**
+- **Real-world validation on Uniswap V3 data**
+- Validation reporting infrastructure
 
 ### 📋 Planned
+- Wash trading CLOSED_LOOP pattern detection (circular trading paths)
+- Wash trading COORDINATED pattern detection (multi-address collusion)
 - Anomaly scoring (Z-score, Isolation Forest)
+- Exploratory analysis notebooks
 - Visualization of anomalous events
 - Minimal Streamlit dashboard
 - Real-time detection pipeline
-- Documentation & result examples
 
 ---
 
