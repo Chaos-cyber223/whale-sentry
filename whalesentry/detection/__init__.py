@@ -11,6 +11,11 @@ from whalesentry.detection.sandwich import (
     detect_sandwich_attacks,
     detect_sandwich_attacks_optimized,
 )
+from whalesentry.detection.wash_trade import (
+    WashTradeCandidate,
+    candidates_to_dataframe as wash_candidates_to_dataframe,
+    detect_wash_trades,
+)
 
 __all__ = [
     "SandwichCandidate",
@@ -18,4 +23,7 @@ __all__ = [
     "detect_sandwich_attacks",
     "detect_sandwich_attacks_optimized",
     "candidates_to_dataframe",
+    "WashTradeCandidate",
+    "detect_wash_trades",
+    "wash_candidates_to_dataframe",
 ]
