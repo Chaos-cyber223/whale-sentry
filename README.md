@@ -5,8 +5,8 @@ Whale-Sentry is an on-chain risk detection system designed to identify suspiciou
 
 The project applies statistical modeling and lightweight machine learning as supporting tools, prioritizing data correctness, interpretability, and operational awareness over model complexity.
 
-> ✅ **Project Status (Feb 11, 2026): Wash Trading Data Models Complete**  
-> Core detection infrastructure expanded with comprehensive wash trading data models. The system now supports three pattern types (roundtrip, closed-loop, coordinated) with full Pydantic validation. Test coverage: **72 tests passing**.
+> ✅ **Project Status (Feb 16, 2026): Wash Trading Detection Complete**  
+> Wash trading detection fully implemented with ROUNDTRIP pattern detection, CLI script, and comprehensive test suite. The system now supports statistical analysis of self-trading patterns with configurable thresholds. Test coverage: **101 tests passing** (72 sandwich + 29 wash trading).
 
 ---
 
@@ -58,11 +58,18 @@ Pattern-based detection combined with anomaly scoring:
 - Abnormal price or volume impact around victim transactions
 
 ### 2. Wash Trading
-Behavioral and statistical signals, including:
-- High-frequency round-trip trading
-- Low counterparty diversity
-- Repetitive trade sizes
-- Extremely short inter-trade intervals
+Statistical detection of self-trading patterns:
+- **ROUNDTRIP pattern**: Same address repeatedly buying and selling within short time windows
+- **Detection parameters**: 
+  - Time window: 300 seconds (5 minutes)
+  - Minimum trade amount: $1,000 USD
+  - Minimum round trips: 3 cycles
+- **Metrics tracked**:
+  - Trade count and frequency
+  - Amount similarity (MAD-based)
+  - Counterparty diversity
+  - Time window analysis
+- **Confidence scoring**: Multi-factor weighted scoring (trade count, amount similarity, counterparty diversity)
 
 ---
 
