@@ -37,6 +37,7 @@ Thumbs.db
 logs/
 data/*
 !data/.gitkeep
+!data/results/*.md
 *.parquet
 *.duckdb
 *.log

@@ -5,7 +5,7 @@ Whale-Sentry is an on-chain risk detection system designed to identify suspiciou
 
 The project applies statistical modeling and lightweight machine learning as supporting tools, prioritizing data correctness, interpretability, and operational awareness over model complexity.
 
-> 🚀 **Current Status**: Phase 1 Complete (Feb 16, 2026)  
+> 🚀 **Current Status**: Phase 1 Complete (Feb 18, 2026)  
 > Core detection modules operational: Sandwich Attack (O(n log n) optimized) + Wash Trading (ROUNDTRIP pattern) with **101 passing tests**. Production-ready data pipeline from Uniswap V3 Subgraph to Parquet storage.  
 > **Next**: Building interactive dashboard & attacker profiling analytics (Phase 2).
 
@@ -19,7 +19,7 @@ The project applies statistical modeling and lightweight machine learning as sup
 
 🧪 **Production-Ready**: 101 passing tests, type-safe Pydantic models, reproducible data pipeline with full validation
 
-📊 **Real-World Validation**: Tested on 90+ Uniswap V3 transactions (Jan 2026 WETH/USDC pool), low false positive rate
+📊 **Real-World Validation**: Validated on 19,000+ Uniswap V3 transactions (Feb 2026 WETH/USDC pool), 3,216 sandwich attacks detected
 
 🛠️ **CLI Tools**: Ready-to-use scripts for batch detection, data cleaning, and analysis — no code required
 
