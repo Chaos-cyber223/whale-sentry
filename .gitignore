@@ -37,13 +37,16 @@ Thumbs.db
 logs/
 data/*
 !data/.gitkeep
+!data/results/*.md
 *.parquet
 *.duckdb
 *.log
 
-# Notebooks
-notebooks/
-*.ipynb
+# Images (keep visualization results)
+!images/
+
+# Notebooks (keep analysis notebooks, ignore checkpoints)
+.ipynb_checkpoints/
 
 # Misc
 *.bak

@@ -5,8 +5,51 @@ Whale-Sentry is an on-chain risk detection system designed to identify suspiciou
 
 The project applies statistical modeling and lightweight machine learning as supporting tools, prioritizing data correctness, interpretability, and operational awareness over model complexity.
 
-> ✅ **Project Status (Feb 16, 2026): Wash Trading Detection Complete**  
-> Wash trading detection fully implemented with ROUNDTRIP pattern detection, CLI script, and comprehensive test suite. The system now supports statistical analysis of self-trading patterns with configurable thresholds. Test coverage: **101 tests passing** (72 sandwich + 29 wash trading).
+> 🚀 **Current Status**: Phase 1 Complete (Feb 18, 2026)  
+> Core detection modules operational: Sandwich Attack (O(n log n) optimized) + Wash Trading (ROUNDTRIP pattern) with **101 passing tests**. Production-ready data pipeline from Uniswap V3 Subgraph to Parquet storage.  
+> **Next**: Building interactive dashboard & attacker profiling analytics (Phase 2).
+
+---
+
+## Key Highlights
+
+🚀 **Algorithm Optimization**: Sandwich detection optimized from O(n³) to O(n log n) — **45-92x speedup** on real datasets
+
+🔍 **Explainable Detection**: Statistical signals + rule-based logic, not black-box ML — every detection is auditable
+
+🧪 **Production-Ready**: 101 passing tests, type-safe Pydantic models, reproducible data pipeline with full validation
+
+📊 **Real-World Validation**: Validated on 19,000+ Uniswap V3 transactions (Feb 2026 WETH/USDC pool), 3,216 sandwich attacks detected
+
+🛠️ **CLI Tools**: Ready-to-use scripts for batch detection, data cleaning, and analysis — no code required
+
+⚡ **Performance**: Processes 10,000+ transactions in seconds, suitable for batch analysis and research
+
+---
+
+## Detection Results
+
+### Real-World Performance on Uniswap V3 Data
+
+**Dataset**: 19,416 swaps over 3 days (Feb 11-14, 2026) from WETH/USDC pool  
+**Detection Results**: 3,216 sandwich attack candidates identified  
+**Unique Attackers**: 27 addresses  
+**Estimated Total Profit**: $46.8M USD  
+**High Confidence Detections**: 2,704 (84.1% of candidates with confidence ≥ 0.7)
+
+<p align="center">
+  <img src="images/confidence_distribution.png" width="100%" alt="Confidence Score Distribution" />
+</p>
+
+<p align="center">
+  <img src="images/top_attackers.png" width="100%" alt="Top 10 Attackers by Profit" />
+</p>
+
+<p align="center">
+  <img src="images/detection_timeline.png" width="100%" alt="Detection Timeline" />
+</p>
+
+📊 **[Full Analysis Notebook](notebooks/detection_analysis.ipynb)** | 🔬 **[Detection Report](data/results/sandwich_3days_report.md)**
 
 ---
 
@@ -70,34 +113,6 @@ Statistical detection of self-trading patterns:
   - Counterparty diversity
   - Time window analysis
 - **Confidence scoring**: Multi-factor weighted scoring (trade count, amount similarity, counterparty diversity)
-
----
-
-## Results & Validation
-
-The detection system has been validated on real Uniswap V3 data:
-
-### Dataset
-- **Pool**: WETH/USDC (0x88e6a0c2...cb3f5640)
-- **Transactions**: 90 swaps
-- **Time Period**: January 24, 2026 (1-hour window)
-
-### Detection Results
-
-#### Sandwich Attacks
-- **Candidates Found**: 1
-- **Confidence**: 0.77 (medium confidence)
-- **False Positive Rate**: Low (single candidate in clean dataset)
-
-#### Wash Trading
-- **Candidates Found**: 0
-- **Analysis**: No ROUNDTRIP patterns detected with current parameters (300s window, $1000 minimum, 3 round trips)
-- **Interpretation**: Clean dataset with no self-trading patterns, demonstrating the detector's ability to avoid false positives
-
-### Key Insights
-- **Low False Positive Rate**: The system correctly identifies clean data without over-flagging
-- **Configurable Thresholds**: Parameters can be adjusted for different risk tolerance levels
-- **Production Ready**: Detection completes in <0.1s for 90 transactions, suitable for batch processing
 
 ---
 
@@ -203,13 +218,13 @@ On-chain Data (Uniswap V3)
         ↓
 Data Ingestion (GraphQL)
         ↓
-Cleaning & Feature Engineering ← ✅ COMPLETE
+Cleaning & Feature Engineering ← ✅ Phase 1
         ↓
-Rule-based Detection (Sandwich ✅ / Wash ✅) ← ✅ COMPLETE
+Rule-based Detection (Sandwich ✅ / Wash ✅) ← ✅ Phase 1
         ↓
-Anomaly Scoring (Stat / ML) ← Planned
+Anomaly Scoring (Stat / ML) ← 🚧 Phase 2
         ↓
-Analysis Notebooks + Risk Dashboard ← Planned
+Analysis Notebooks + Risk Dashboard ← 🚧 Phase 2
 ```
 
 ## Technology Stack
@@ -394,57 +409,21 @@ $ pytest tests/test_clean_swaps.py -v
 - **Real-world validation on Uniswap V3 data**
 - Validation reporting infrastructure
 
-### 📋 Planned
-- Wash trading CLOSED_LOOP pattern detection (circular trading paths)
-- Wash trading COORDINATED pattern detection (multi-address collusion)
-- Anomaly scoring (Z-score, Isolation Forest)
+### 🚧 Phase 2: Analytics & Visualization (In Progress)
+- Interactive dashboard (Streamlit)
+- Attacker profiling & behavior analysis
+- Detection result visualization (timeline, network graphs)
+- Anomaly scoring enhancement (Z-score, Isolation Forest)
 - Exploratory analysis notebooks
-- Visualization of anomalous events
-- Minimal Streamlit dashboard
-- Real-time detection pipeline
+
+### 📋 Phase 3: Production Enhancement (Planned)
+- Wash trading CLOSED_LOOP pattern (circular trading paths)
+- Wash trading COORDINATED pattern (multi-address collusion)
+- Real-time streaming detection pipeline
+- Cross-DEX analysis (Uniswap V2/V3, Curve)
+- Known MEV bot address library integration
 
 ---
-
-## Limitations & Future Work
-
-```text
-On-chain Data (Uniswap V3)
-        ↓
-Data Ingestion (GraphQL)
-        ↓
-Cleaning & Feature Engineering
-        ↓
-Rule-based Detection (Sandwich / Wash)
-        ↓
-Anomaly Scoring (Stat / ML)
-        ↓
-Analysis Notebooks + Risk Dashboard
-
-```
-
-## Technology Stack
-
-- **Python** (data pipelines, modeling)
-- **pandas / NumPy / scikit-learn**
-- **DuckDB / Parquet** (analytical storage)
-- **Jupyter Notebooks** (research & reporting)
-- **Streamlit** (lightweight risk dashboard)
-
-
-## Development Roadmap (MVP – 2 Weeks)
-
-### Week 1
-- Data ingestion from Uniswap V3 Subgraph
-- Data cleaning and feature engineering
-- Initial sandwich attack rule-based detection
-- Exploratory analysis notebooks
-
-### Week 2
-- Wash trading detection
-- Anomaly scoring (Z-score, Isolation Forest)
-- Visualization of anomalous events
-- Minimal Streamlit dashboard
-- Documentation & result examples
 
 ## Limitations & Known Issues
 
@@ -458,13 +437,15 @@ Analysis Notebooks + Risk Dashboard
 - **Legacy algorithm**: O(n³) complexity, provided for reference and validation only
 - **Memory usage**: Reasonable for datasets up to 100,000 transactions (< 500MB)
 
-**Future extensions:**
+### Future Extensions
 - Direct log-level ingestion via `web3.py`
 - Real-time streaming detection
-- Cross-DEX analysis
+- Cross-DEX analysis (Uniswap V2, Curve, etc.)
 - Integration with MEV relay / builder data
 - Known MEV bot address filtering
 - Multi-victim sandwich pattern detection
+- Block-level transaction ordering (`txIndex`)
+- Precise profit calculation using `sqrtPriceX96` and gas costs
 
 ## About the Author
 
