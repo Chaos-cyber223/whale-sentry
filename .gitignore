@@ -41,9 +41,8 @@ data/*
 *.duckdb
 *.log
 
-# Notebooks
-notebooks/
-*.ipynb
+# Notebooks (keep analysis notebooks, ignore checkpoints)
+.ipynb_checkpoints/
 
 # Misc
 *.bak
