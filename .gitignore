@@ -41,6 +41,9 @@ data/*
 *.duckdb
 *.log
 
+# Images (keep visualization results)
+!images/
+
 # Notebooks (keep analysis notebooks, ignore checkpoints)
 .ipynb_checkpoints/
 

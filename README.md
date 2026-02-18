@@ -27,6 +27,32 @@ The project applies statistical modeling and lightweight machine learning as sup
 
 ---
 
+## Detection Results
+
+### Real-World Performance on Uniswap V3 Data
+
+**Dataset**: 19,416 swaps over 3 days (Feb 11-14, 2026) from WETH/USDC pool  
+**Detection Results**: 3,216 sandwich attack candidates identified  
+**Unique Attackers**: 27 addresses  
+**Estimated Total Profit**: $46.8M USD  
+**High Confidence Detections**: 2,704 (84.1% of candidates with confidence ≥ 0.7)
+
+<p align="center">
+  <img src="images/confidence_distribution.png" width="100%" alt="Confidence Score Distribution" />
+</p>
+
+<p align="center">
+  <img src="images/top_attackers.png" width="100%" alt="Top 10 Attackers by Profit" />
+</p>
+
+<p align="center">
+  <img src="images/detection_timeline.png" width="100%" alt="Detection Timeline" />
+</p>
+
+📊 **[Full Analysis Notebook](notebooks/detection_analysis.ipynb)** | 🔬 **[Detection Report](data/results/sandwich_3days_report.md)**
+
+---
+
 ## Motivation
 
 Decentralized finance introduces transparency at the data level, but **not at the behavior level**.  
@@ -87,34 +113,6 @@ Statistical detection of self-trading patterns:
   - Counterparty diversity
   - Time window analysis
 - **Confidence scoring**: Multi-factor weighted scoring (trade count, amount similarity, counterparty diversity)
-
----
-
-## Results & Validation
-
-The detection system has been validated on real Uniswap V3 data:
-
-### Dataset
-- **Pool**: WETH/USDC (0x88e6a0c2...cb3f5640)
-- **Transactions**: 90 swaps
-- **Time Period**: January 24, 2026 (1-hour window)
-
-### Detection Results
-
-#### Sandwich Attacks
-- **Candidates Found**: 1
-- **Confidence**: 0.77 (medium confidence)
-- **False Positive Rate**: Low (single candidate in clean dataset)
-
-#### Wash Trading
-- **Candidates Found**: 0
-- **Analysis**: No ROUNDTRIP patterns detected with current parameters (300s window, $1000 minimum, 3 round trips)
-- **Interpretation**: Clean dataset with no self-trading patterns, demonstrating the detector's ability to avoid false positives
-
-### Key Insights
-- **Low False Positive Rate**: The system correctly identifies clean data without over-flagging
-- **Configurable Thresholds**: Parameters can be adjusted for different risk tolerance levels
-- **Production Ready**: Detection completes in <0.1s for 90 transactions, suitable for batch processing
 
 ---
 
